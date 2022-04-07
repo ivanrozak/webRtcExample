@@ -1,5 +1,9 @@
 <template>
-  <Test />
+  <div>
+    <Test />
+    <button @click="connectSocket()">connect practice</button>
+    <button @click="getSchedule()">get schedule</button>
+  </div>
 </template>
 
 <script>
@@ -7,7 +11,8 @@ export default {
   name: 'IndexPage',
   data () {
     return {
-      socketGlobal: null
+      socketGlobal: null,
+      socket: null
     }
   },
   mounted () {
@@ -22,11 +27,13 @@ export default {
 
     this.socketGlobal.on('connect', () => {
       this.$store.dispatch('authorization')
-      // this.$store.commit('globalSocket/CONNECT', true)
       console.log('GLOBAL SOCKET CONNECTED')
     })
   },
   methods: {
+    getSchedule () {
+      this.$store.dispatch('getCurrentSchedule')
+    },
     makeid (length) {
       let result = ''
       const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
@@ -35,7 +42,101 @@ export default {
         result += characters.charAt(Math.floor(Math.random() * charactersLength))
       }
       return result
+    },
+    async connectSocket () {
+      this.$store.commit('SET_SOCKET_PRACTICE', this.makeid(10))
+
+      this.socket = await this.$nuxtSocket({
+        name: 'practicing',
+        channel: '/',
+        persist: this.$store.state.practiceSocket.PersistName,
+        url: 'https://socks7server13.yesdok.com'
+        // reconnection: false,
+      })
+
+      this.socket.on('connect', () => {
+        console.log('socket practicing connected')
+        this.$store.dispatch('doctorAuthorization')
+      })
+
+      this.socket.on('error', (data) => {
+        console.log('socket practicing error', data)
+      })
+
+      this.socket.on('reconnect', (data) => {
+        console.log('socket practicing reconnect', data)
+      })
+
+      this.socket.on('connect_error', (data) => {
+        console.log('socket practicing connect error', data)
+      })
+
+      this.socket.on('disconnect', (data) => {
+        // this.$store.dispatch('consultation/onDisconnect')
+        console.log('socket practicing disconnect', data)
+        
+      })
+
+      this.socket.on('Call', (data, response) => {
+        console.log('GET START CALL', data)
+        response(1)
+        // this.$store.dispatch('consultation/onCall', data)
+      })
+
+      this.socket.on('Data', (data, response) => {
+        response(1)
+        // this.$store.dispatch('consultation/onData', data)
+        console.log('data => ', data)
+      })
+
+      this.socket.on('Message', (data, response) => {
+        console.log('message => ', data)
+        // response(1)
+
+        // this.$store.dispatch('consultation/onMessage', data)
+
+        // if (data.CallType) {
+        //   this.mode = data.CallType
+        // }
+
+        // if (data.id === 'Reconnect') {
+        //   this.isWaitingPatientBack = false
+
+        //   if (this.$store.state.consultation.consultation.consultationMode === 'Video') { this.remoteHasIceCandidate = false }
+
+        //   // init consultation
+        //   this.preparingConsultation({
+        //     iceRestart: true
+        //   })
+
+        //   this.$store.dispatch('consultation/log', {
+        //     data: 'Patient Reconnect',
+        //     status: 'INFO'
+        //   })
+        // }
+      })
+
+      this.socket.on('EndCall', (data, response) => {
+      })
+
+      this.socket.on('ScheduleEnded', (data, response) => {
+      })
+
+      this.socket.on('PatientDisconnect', (data, response) => {
+        
+      })
     }
+    
+  },
+  destroyed () {
+    this.$nuxt.$off('connectSocket')
+    this.$nuxt.$off('disconnectSocket')
+    this.$nuxt.$off('cancelConsultation')
+    this.$nuxt.$off('stopCheckingSchedule')
+    this.$nuxt.$off('stopRecording')
+    this.$nuxt.$off('patientNoAnswer')
+    this.$nuxt.$off('patientRejectCall')
+    this.$nuxt.$off('eventSubmitted')
   }
 }
 </script>
