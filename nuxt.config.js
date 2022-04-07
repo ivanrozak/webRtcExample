@@ -49,14 +49,14 @@ export default {
         url: 'https://server13.yesdok.com:3002'
       },
       {
+        name: 'globalChat',
+        channel: '/',
+        url: 'https://server13.yesdok.com:3333'
+      },
+      {
         name: 'practicing',
         channel: '/',
         url: 'https://socks7server13.yesdok.com'
-      },
-      {
-        name: 'example',
-        channel: '/',
-        url: 'http://localhost:3001'
       }
     ]
   },
