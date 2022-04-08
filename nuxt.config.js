@@ -30,6 +30,7 @@ export default {
 
   // Modules for dev and build (recommended): https://go.nuxtjs.dev/config-modules
   buildModules: [
+    '@nuxtjs/moment',
   ],
 
   // Modules: https://go.nuxtjs.dev/config-modules
@@ -38,6 +39,10 @@ export default {
     '@nuxtjs/axios',
     'nuxt-socket-io',
   ],
+  moment: {
+    defaultLocale: 'id',
+    locales: ['id']
+  },
   // socket config
   io: {
     // module options

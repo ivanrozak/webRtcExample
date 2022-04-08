@@ -44,6 +44,7 @@ export default {
       return result
     },
     async connectSocket () {
+      const self = this
       this.$store.commit('SET_SOCKET_PRACTICE', this.makeid(10))
 
       this.socket = await this.$nuxtSocket({
@@ -56,7 +57,11 @@ export default {
 
       this.socket.on('connect', () => {
         console.log('socket practicing connected')
-        this.$store.dispatch('doctorAuthorization')
+        self.$store.dispatch('doctorAuthorization').then((res) => {
+          self.sendNotification()
+        }).catch(() => {
+          // location.reload()
+        })
       })
 
       this.socket.on('error', (data) => {
@@ -125,8 +130,12 @@ export default {
       this.socket.on('PatientDisconnect', (data, response) => {
         
       })
+    },
+    sendNotification () {
+      this.$store.dispatch('sendPushNotifiation').then((res) => {
+        console.log(res, 'res notif')
+      })
     }
-    
   },
   destroyed () {
     this.$nuxt.$off('connectSocket')

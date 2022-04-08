@@ -1,3 +1,5 @@
+const BASE_API = 'https://server13.yesdok.com/api/3.0/'
+
 export const state = () => ({
   user: {
     Role: '',
@@ -67,36 +69,36 @@ export const actions = {
       })
     })
   },
-  doctorAuthorization ({ commit, dispatch, state }) {
-    return new Promise((resolve, reject) => {
-      dispatch('setQueue').then((res) => {
-        dispatch(
-          '$nuxtSocket/emit',
-          {
-            label: state.practiceSocket.PersistName,
-            evt: 'DoctorAuthorization',
-            msg: state.doctorSessionID
-          }, { root: true }
-        ).then((resEmit) => {
-          dispatch('log', {
-            data: 'Doctor Authorized as ' + state.doctorSessionID,
-            status: 'INFO',
-          })
-          console.log('Doctor Authorized')
-          // commit('SET_DOCTOR_AUTHORIZED', true)
-          // if (state.consultation.status !== 'DoctorReconnect') { commit('SET_POSITION', 2) }
-          resolve(true)
-        }).catch((errorEmit) => {
-          // dispatch('log', {
-          //   data: 'Emit Doctor Authorization Error',
-          //   status: 'ERROR',
-          // })
-          console.log('Doctor Authorized Error')
-          reject(errorEmit)
-        })
-      })
-    })
-  },
+  // // doctorAuthorization ({ commit, dispatch, state }) {
+  // //   return new Promise((resolve, reject) => {
+  // //     dispatch('setQueue').then((res) => {
+  // //       dispatch(
+  // //         '$nuxtSocket/emit',
+  // //         {
+  // //           label: state.practiceSocket.PersistName,
+  // //           evt: 'DoctorAuthorization',
+  // //           msg: state.doctorSessionID
+  // //         }, { root: true }
+  // //       ).then((resEmit) => {
+  // //         dispatch('log', {
+  // //           data: 'Doctor Authorized as ' + state.doctorSessionID,
+  // //           status: 'INFO',
+  // //         })
+  // //         console.log('Doctor Authorized')
+  // //         // commit('SET_DOCTOR_AUTHORIZED', true)
+  // //         // if (state.consultation.status !== 'DoctorReconnect') { commit('SET_POSITION', 2) }
+  // //         resolve(true)
+  // //       }).catch((errorEmit) => {
+  // //         // dispatch('log', {
+  // //         //   data: 'Emit Doctor Authorization Error',
+  // //         //   status: 'ERROR',
+  // //         // })
+  // //         console.log('Doctor Authorized Error')
+  // //         reject(errorEmit)
+  // //       })
+  // //     })
+  // //   })
+  // // },
   getCurrentSchedule ({ commit, dispatch, state }, data) {
     return new Promise((resolve, reject) => {
       $nuxt.$api.get('https://server13.yesdok.com/api/3.0/doctor/check/schedule', {
@@ -145,35 +147,35 @@ export const actions = {
       })
     })
   },
-  log ({ commit, dispatch, state, rootState }, payload) {
-    const {data, status = 'INFO', consoleLog = true} = payload
-    return new Promise((resolve, reject) => {
-      // if(!rootState.globalSocket.isSocketConnected) {
-      //   console.log('Global Socket Not Connected')
-      //   reject('Global Socket Not Connected')
-      // }
-      let message = `[${$nuxt.$moment().format('YYYY-MM-DD HH:mm:ss')}] [${status}] ${data}`
-      if(consoleLog) console.log(message)
-      // dispatch(
-      //   '$nuxtSocket/emit',
-      //   {
-      //     label: rootState.globalSocket.socketPersistName,
-      //     evt: 'DoctorPracticeSessionLogs',
-      //     msg: {
-      //       sessionId: state.doctorSessionID,
-      //       tokenLoginId: rootState.user.auth.token,
-      //       message: message
-      //     }
-      //   }, { root: true }
-      // ).then((resEmit) => {
-      //   console.log('[CONSULTATION LOG]', data)
-      //   resolve(true)
-      // }).catch((errorEmit) => {
-      //   console.log('[LOGGIN FAILED]', data)
-      //   reject(errorEmit)
-      // })
-    })
-  },
+  // log ({ commit, dispatch, state, rootState }, payload) {
+  //   const {data, status = 'INFO', consoleLog = true} = payload
+  //   return new Promise((resolve, reject) => {
+  //     // if(!rootState.globalSocket.isSocketConnected) {
+  //     //   console.log('Global Socket Not Connected')
+  //     //   reject('Global Socket Not Connected')
+  //     // }
+  //     let message = `[${$nuxt.$moment().format('YYYY-MM-DD HH:mm:ss')}] [${status}] ${data}`
+  //     if(consoleLog) console.log(message)
+  //     // dispatch(
+  //     //   '$nuxtSocket/emit',
+  //     //   {
+  //     //     label: rootState.globalSocket.socketPersistName,
+  //     //     evt: 'DoctorPracticeSessionLogs',
+  //     //     msg: {
+  //     //       sessionId: state.doctorSessionID,
+  //     //       tokenLoginId: rootState.user.auth.token,
+  //     //       message: message
+  //     //     }
+  //     //   }, { root: true }
+  //     // ).then((resEmit) => {
+  //     //   console.log('[CONSULTATION LOG]', data)
+  //     //   resolve(true)
+  //     // }).catch((errorEmit) => {
+  //     //   console.log('[LOGGIN FAILED]', data)
+  //     //   reject(errorEmit)
+  //     // })
+  //   })
+  // },
   setScheduleTimer ({ commit, dispatch, state }, epochTime) {
     let curr = epochTime
 
@@ -278,24 +280,36 @@ export const actions = {
       }
     })
   },
-  setQueue ({ commit, state, rootState }, token) {
+  // setQueue ({ commit, state, rootState }, token) {
+  //   return new Promise((resolve, reject) => {
+  //     const formData = new FormData()
+
+  //     // object current schedule from parameter in library SDK and required
+  //     formData.append('CalendarID', state.currentSchedule.PublicID)
+  //     if (state.currentSchedule.Appointment) { formData.append('AppointmentPublicID', state.currentSchedule.Appointment.PublicID) }
+
+  //     $nuxt.$api.post('https://server13.yesdok.com/api/3.0/doctor/enter/queue', formData, {})
+  //       .then(function (response) {
+  //         console.log(response)
+  //         const res = response.data.Data
+  //         commit('SET_DOCTOR_SESSION_ID', res.DoctorSessionID)
+  //         resolve(res)
+  //       })
+  //       .catch(function (error) {
+  //         reject(error)
+  //       })
+  //   })      
+  // },
+  sendPushNotifiation ({ state }) {
     return new Promise((resolve, reject) => {
-      const formData = new FormData()
-
-      // object current schedule from parameter in library SDK and required
-      formData.append('CalendarID', state.currentSchedule.PublicID)
-      if (state.currentSchedule.Appointment) { formData.append('AppointmentPublicID', state.currentSchedule.Appointment.PublicID) }
-
-      $nuxt.$api.post('https://server13.yesdok.com/api/3.0/doctor/enter/queue', formData, {})
+      $nuxt.$api.post(BASE_API + 'doctor/send/push/call/' + state.doctorSessionID, {})
         .then(function (response) {
-          console.log(response)
-          const res = response.data.Data
-          commit('SET_DOCTOR_SESSION_ID', res.DoctorSessionID)
+          const res = response.data
           resolve(res)
         })
         .catch(function (error) {
           reject(error)
         })
-    })      
+    })
   }
 }
