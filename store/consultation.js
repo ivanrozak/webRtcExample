@@ -34,6 +34,7 @@ export const state = () => ({
   },
 	callStatus: null,
 	localSDP: null,
+	iceCandidates: []
 })
 export const mutations = {
 	SET_CURRENT_SCHEDULE: (state, value) => {
@@ -72,6 +73,9 @@ export const mutations = {
 	SET_LOCAL_SDP: (state, value) => {
     state.localSDP = value
   },
+	ADD_NEW_CANDIDATE: (state, value) => {
+		state.iceCandidates.push(value)
+	}
 }
 export const actions = {
 	doctorAuthorization ({ commit, dispatch, state }) {
@@ -291,27 +295,27 @@ export const actions = {
 
     if (response.id == 'IceCandidate') { $nuxt.$emit('setPeerSignal', 'candidate', response.data) }
 
-    // if (response.CallType) {
-		// 	console.log('Consultation Call Type: ' + response.CallType)
+    if (response.CallType) {
+			console.log('Consultation Call Type: ' + response.CallType)
 
-    //   commit('SET_CONSULTATION', {
-    //     key: 'consultationMode',
-    //     value: response.CallType
-    //   })
+      commit('SET_CONSULTATION', {
+        key: 'consultationMode',
+        value: response.CallType
+      })
 
-    //   if (response.CallType == 'Video' || response.CallType == 'Chat') {
-    //     commit('SET_CONSULTATION', {
-    //       key: 'videoEnabled',
-    //       value: true
-    //     })
-    //   }
-    //   if (response.CallType == 'Audio') {
-    //     commit('SET_CONSULTATION', {
-    //       key: 'videoEnabled',
-    //       value: false
-    //     })
-    //   }
-    // }
+      if (response.CallType == 'Video' || response.CallType == 'Chat') {
+        commit('SET_CONSULTATION', {
+          key: 'videoEnabled',
+          value: true
+        })
+      }
+      if (response.CallType == 'Audio') {
+        commit('SET_CONSULTATION', {
+          key: 'videoEnabled',
+          value: false
+        })
+      }
+    }
 
     // if (response.id == 'IsTyping') {
     //   dispatch('log', {
@@ -335,26 +339,203 @@ export const actions = {
     //   }, 2000)
     // }
 
-    // if (response.Status) {
-    //   if(state.consultation.status === 'PatientDisconnect' && response.Status === 'DeviceBackToForeground') {
-    //     commit('SET_CONSULTATION', {
-    //       'key': 'status',
-    //       'value': state.consultation.status,
-    //     })
-    //     dispatch('log', {
-    //       data: 'Consultation Status: ' + state.consultation.status,
-    //       status: 'INFO',
-    //     })
-    //   } else {
-    //     commit('SET_CONSULTATION', {
-    //       'key': 'status',
-    //       'value': response.Status,
-    //     })
-    //     dispatch('log', {
-    //       data: 'Consultation Status: ' + response.Status,
-    //       status: 'INFO',
-    //     })
-    //   }
-    // }
+    if (response.Status) {
+      if(state.consultation.status === 'PatientDisconnect' && response.Status === 'DeviceBackToForeground') {
+        commit('SET_CONSULTATION', {
+          'key': 'status',
+          'value': state.consultation.status,
+        })
+        // dispatch('log', {
+        //   data: 'Consultation Status: ' + state.consultation.status,
+        //   status: 'INFO',
+        // })
+      } else {
+        commit('SET_CONSULTATION', {
+          'key': 'status',
+          'value': response.Status,
+        })
+        // dispatch('log', {
+        //   data: 'Consultation Status: ' + response.Status,
+        //   status: 'INFO',
+        // })
+      }
+    }
+  },
+	async onData ({ commit, dispatch, state, rootState }, response) {
+    // dispatch('clearMissedCallTimeout')
+
+    // dispatch('log', {
+    //   data: 'On Data: ' + JSON.stringify(response),
+    //   status: 'INFO',
+    // })
+		console.log('On Data', JSON.stringify(response))
+
+    if (response.Status != 'Accepted') {
+      // $nuxt.$emit('patientRejectCall')
+      // dispatch('log', {
+      //   data: 'Patient Reject The Call',
+      //   status: 'INFO',
+      // })
+    } else {
+      await dispatch('initConsultation').then((response) => {
+        // langkah 16
+        state.iceCandidates.forEach((iceCandidate) => {
+          dispatch('emitMessage', { id: 'IceCandidate', data: iceCandidate })
+        })
+				console.log('set call status')
+        commit('SET_CALLING', false)
+        commit('SET_CALL_STATUS', 'IN_CALL')
+        // commit('SET_IN_CONSULTATION', true)
+
+        commit('SET_CONSULTATION', {
+          key: 'status',
+          value: 'Connected'
+        })
+				console.log('patient accept call, in consultation')
+        // dispatch('log', {
+        //   data: 'Patient Accept The Call',
+        //   status: 'INFO',
+        // })
+        // dispatch('log', {
+        //   data: 'In Consultation',
+        //   status: 'INFO',
+        // })
+      })
+    }
+  },
+	initConsultation ({ commit, dispatch, state, rootState }) {
+    // langkah 17
+    return new Promise((resolve, reject) => {
+			console.log('masuk init consultation')
+      // let willCreateConsult = true
+
+      // if (state.consultation.status === 'DoctorReconnect') {
+      //   commit('SET_RECORDED', state.consultation.reconnectData.Practicing.IsRecorded)
+      //   commit('SET_CONSULTATION', {
+      //     key: 'consultationID',
+      //     value: state.consultation.reconnectData.Practicing.ID
+      //   })
+      //   commit('SET_CONSULTATION', {
+      //     key: 'userSymptoms',
+      //     value: state.consultation.reconnectData.Practicing.SymptomNotes
+      //   })
+      //   commit('SET_CONSULTATION', {
+      //     key: 'userSymptomsID',
+      //     value: state.consultation.reconnectData.Practicing.SymptomID
+      //   })
+      //   commit('SET_CONSULTATION', {
+      //     key: 'userSymptomsIcon',
+      //     value: state.consultation.reconnectData.Practicing.SymptomIcon
+      //   })
+      //   commit('SET_CONSULTATION', {
+      //     key: 'pharmacy',
+      //     value: state.consultation.reconnectData.Practicing.pharmacy
+      //   })
+
+      //   dispatch('$nuxtSocket/emit', {
+      //     label: state.socketPersistName,
+      //     evt: 'ConsultationID',
+      //     msg: state.consultation.reconnectData.Practicing.ID
+      //   }, { root: true }
+      //   )
+      //   dispatch('emitMessage', { id: 'ConsultationID', data: state.consultation.reconnectData.Practicing.ID })
+      // }
+
+      // dispatch('log', {
+      //   data: 'Current Status while Init Consultation: ' + state.consultation.status,
+      //   status: 'INFO',
+      // })
+      // dispatch('log', {
+      //   data: 'Consultation ID: ' + state.consultation.consultationID,
+      //   status: 'INFO',
+      // })
+
+      // check current practice is exist
+      $nuxt.$api.get(BASE_API + 'doctor/' + 'current/practice/' + rootState.doctorSessionID)
+        .then(function (response) {
+					console.log('masuk then init consultation')
+          const resCheckPractice = response.data
+
+          if (!resCheckPractice || resCheckPractice.status === 204) {
+            dispatch('log', {
+              data: 'Create Practicing Data...',
+              status: 'INFO',
+            })
+
+            const formData = {
+              DoctorSessionID: rootState.doctorSessionID,
+              PatientSessionID: state.patientSessionID,
+              PatientID: state.patientID
+            }
+
+            $nuxt.$api.post(BASE_API + 'doctor/' + 'create/consultation', formData)
+              .then(function (response) {
+                const res = response.data.Data
+
+                // commit('SET_RECORDED', res.IsRecorded)
+                commit('SET_CONSULTATION', {
+                  key: 'consultationID',
+                  value: res.ID
+                })
+
+                dispatch('$nuxtSocket/emit', {
+                  label: rootState.practiceSocket.PersistName,
+                  evt: 'ConsultationID',
+                  msg: res.ID
+                }, { root: true }
+                )
+                // dispatch('getPatientInfoByConsultationID')
+                // dispatch('startTimer')
+                // dispatch('getChatHistories')
+                resolve(true)
+              })
+              .catch(function (error) {
+                reject(error)
+              })
+            return
+          }
+
+          // dispatch('log', {
+          //   data: 'Practicing Data Found',
+          //   status: 'INFO',
+          // })
+
+          const data = resCheckPractice.Data
+
+          // commit('SET_RECORDED', data.IsRecorded)
+          commit('SET_CONSULTATION', {
+            key: 'consultationID',
+            value: data.ID
+          })
+          commit('SET_CONSULTATION', {
+            key: 'userSymptoms',
+            value: data.SymptomNotes
+          })
+          commit('SET_CONSULTATION', {
+            key: 'userSymptomsID',
+            value: data.Symptoms
+          })
+          commit('SET_CONSULTATION', {
+            key: 'pharmacy',
+            value: data.PharmacyID
+          })
+
+          dispatch('$nuxtSocket/emit', {
+            label: rootState.practiceSocket.PersistName,
+            evt: 'ConsultationID',
+            msg: data.ID
+          }, { root: true }
+          )
+          dispatch('emitMessage', { id: 'ConsultationID', data: data.ID })
+          // dispatch('getPatientInfoByConsultationID')
+          // dispatch('startTimer')
+          // dispatch('getChatHistories')
+					console.log('init consult success')
+          resolve(true)
+        })
+        .catch(function (error) {
+          reject(error)
+        })
+    })
   },
 }

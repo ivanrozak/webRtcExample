@@ -33,6 +33,23 @@ export default {
       isPatientLoggedIn: false
     }
   },
+  computed: {
+    consultationCallingState () {
+      return this.$store.state.consultation.isCalling
+    }
+  },
+  watch: {
+    consultationCallingState (isCalling) {
+      if (isCalling === true) {
+        this.preparingConsultation({
+          iceRestart: this.$store.state.consultation.consultation.status === 'PatientDisconnect'
+        })
+        console.log('Playing Incoming Sound')
+      } else {
+        console.log('stop incoming call sound')
+      }
+    }
+  },
   mounted () {
     this.$store.commit('SET_SOCKET_PERSIST', this.makeid(10))
     this.socketGlobal = this.$nuxtSocket({
@@ -52,16 +69,6 @@ export default {
     }
     // first check Appointment with patient
     this.getSchedule()
-    // check isCalling condition
-    if (this.$store.state.consultation.isCalling) {
-      // init consultation
-      this.preparingConsultation({
-        iceRestart: this.$store.state.consultation.consultation.status === 'PatientDisconnect'
-      })
-      console.log('Playing Incoming Sound')
-    } else {
-      console.log('stop incoming call sound')
-    }
   },
   methods: {
     init () {
@@ -89,20 +96,18 @@ export default {
     // steps before Consultation
     async checkBeforeConsultation() {
       await this.checkLoginPatient()
-      await this.openConsultation()
+      await this.connectSocket()
     },
     checkLoginPatient() {
       const appointmentID = this.$store.state.currentSchedule.Appointment.ID
       this.$store.dispatch('consultation/checkLoginPatient', appointmentID)
         .then((res) => {
+          console.log("patient logged in :", res.data.Data.IsPatientLoggedIn)
           this.isPatientLoggedIn = res.data.Data.IsPatientLoggedIn
         })
         .catch((err) => {
           throw new Error(err)
         })
-    },
-    openConsultation() {
-      this.connectSocket()
     },
     makeid (length) {
       let result = ''
@@ -142,7 +147,7 @@ export default {
 
       this.socket.on('Data', (data, response) => {
         response(1)
-        // this.$store.dispatch('consultation/onData', data)
+        this.$store.dispatch('consultation/onData', data)
         console.log('data => ', data)
       })
 
@@ -280,10 +285,10 @@ export default {
             if (self.$store.state.consultation.callStatus === 'IN_CALL') {
               console.log('EMIT ICE CANDIDATE IN CALL', data.candidate)
               self.$store.dispatch('consultation/emitMessage', { id: 'IceCandidate', data: data.candidate })
-              // self.$store.commit('RTC/ADD_NEW_CANDIDATE', data.candidate)
+              self.$store.commit('consultation/ADD_NEW_CANDIDATE', data.candidate)
             } else if (self.$store.state.consultation.callStatus === 'PROCESSING_CALL') {
               console.log('EMIT ICE CANDIDATE IN PROCESSING CALL', data.candidate)
-              // self.$store.commit('RTC/ADD_NEW_CANDIDATE', data.candidate)
+              self.$store.commit('consultation/ADD_NEW_CANDIDATE', data.candidate)
             }
           }
         })
@@ -320,8 +325,8 @@ export default {
     peerOnStream() {
       const self = this
       if (PEER) {
+        self.inConsultation = true
         PEER.on('stream', function (remoteStream) {
-          self.inConsultation = true
           console.log('On Streaming : ', JSON.stringify(remoteStream))
           REMOTE_STREAM = remoteStream
 
