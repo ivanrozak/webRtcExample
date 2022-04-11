@@ -1,6 +1,37 @@
+const BASE_API = 'https://server13.yesdok.com/api/3.0/'
+
 export const state = () => ({
 	currentSchedule: null,
-	doctorSessionID: ''
+	doctorSessionID: '',
+
+	patientID: null,
+	patientSessionID: null,
+	isCalling: false,
+	position: null,
+	consultation: {
+    consultationID: null,
+    schedule: null,
+    consultationType: null,
+    consultationTypeFlag: null,
+    userSymptoms: null,
+    userSymptomsID: null,
+    userSymptomsIcon: null,
+    patientPersonalData: null,
+    consultationTimer: null,
+    lastConsultationTimer: null,
+    consultationTimerObject: null,
+    runningTime: 0,
+    runningTimeObject: null,
+    pharmacy: null,
+    videoEnabled: true,
+    reconnectData: null,
+    isTyping: false,
+    consultationMode: 'Video', // Video or Phone
+    patientInfo: null,
+    status: 'Idle',
+    chat: [],
+    attachment: null
+  }
 })
 export const mutations = {
 	SET_CURRENT_SCHEDULE: (state, value) => {
@@ -8,7 +39,31 @@ export const mutations = {
   },
 	SET_DOCTOR_SESSION_ID: (state, value) => {
     state.doctorSessionID = value
-  }
+  },
+	SET_PATIENT_ID: (state, value) => {
+		state.patientID = value
+	},
+	SET_PATIENT_SESSION_ID: (state, value) => {
+		state.patientSessionID = value
+	},
+	SET_CALLING: (state, value) => {
+		state.isCalling = value
+	},
+	SET_POSITION: (state, value) => {
+		state.position = value
+	},
+	SET_CONSULTATION: (state, data) => {
+		const { key, value } = data
+    if (key === 'chat') {
+      if (typeof value.index !== 'undefined' && value.index > -1) {
+        state.consultation[key][value.index] = value
+      } else {
+        state.consultation[key].push(value)
+      }
+    } else { 
+      state.consultation[key] = value
+    }
+	}
 }
 export const actions = {
 	doctorAuthorization ({ commit, dispatch, state }) {
@@ -168,4 +223,27 @@ export const actions = {
 				})
 		})      
 	},
+	checkLoginPatient ({rootState}, appointmentID) {
+    return new Promise((resolve, reject) => {
+      $nuxt.$api.post(`${BASE_API}doctor/appointment/${appointmentID}/metadata`, null)
+        .then(function (response) {
+          resolve(response)
+        })
+        .catch(function (error) {
+          reject(error.response)
+        })
+    })
+  },
+	// Socket Action here
+	onCall ({commit, state}, response) {
+		commit('SET_PATIENT_ID', response.PatientID)
+		commit('SET_PATIENT_SESSION_ID', response.PatientSessionID)
+		commit('SET_CALLING', true)
+		commit('SET_POSITION', 3)
+
+		commit('SET_CONSULTATION', {
+			key: 'consultationMode',
+			value: response.Type
+		})
+	}
 }

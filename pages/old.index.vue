@@ -1,71 +1,48 @@
 <template>
-  <div class="container">
-    <h1>Web RTC Example</h1>
-    <div class="video-section">
-      <div>
-        <video id="localVideo" muted="muted" />
-        <h3>Doctor Video</h3>
-      </div>
-      <div v-if="inConsultation">
-        <video id="remoteVideo" />
-        <h3>Patient Video</h3>
-      </div>
-    </div>
+  <div>
     <div>
-      <button @click="checkBeforeConsultation()">Mulai Konsultasi</button>
+      <video id="localVideo" muted="muted" width="300" height="200" />
+      <p>Doctor Video</p>
+      <video id="remoteVideo" muted="muted" width="300" height="200"></video>
+      <p>Patient Video</p>
     </div>
+    <button @click="connectSocket()">connect practice</button>
+    <button @click="getSchedule()">get schedule</button>
+    <button @click="pauseVideo()">pause</button>
   </div>
 </template>
 
 <script>
+const getUserMedia = require('getusermedia')
+
 export default {
-  name: 'Index',
-  data() {
+  name: 'IndexPage',
+  data () {
     return {
-      socket: null,
       socketGlobal: null,
-      inConsultation: false,
-      isPatientLoggedIn: false
+      socket: null
     }
   },
   mounted () {
-    if (this.$store.state.user.Token === '') {
-      this.$router.push('/login')
-    }
-    // first check Appointment with patient
-    this.getSchedule()
-    // check isCalling condition
-    if (this.$store.state.consultation.isCalling) {
-      // init consultation
-      this.preparingConsultation({
-        iceRestart: this.$store.state.consultation.consultation.status === 'PatientDisconnect'
-      })
-      console.log('Playing Incoming Sound')
-    } else {
-      console.log('stop incoming call sound')
-    }
+    this.$store.commit('SET_SOCKET_PERSIST', this.makeid(10))
+    console.log(this.$store.state.socket.PersistName)
+    this.socketGlobal = this.$nuxtSocket({
+      name: 'global',
+      channel: '/',
+      persist: this.$store.state.socket.PersistName,
+      url: 'https://server13.yesdok.com:3002'
+    })
+
+    this.socketGlobal.on('connect', () => {
+      this.$store.dispatch('authorization')
+      console.log('GLOBAL SOCKET CONNECTED')
+    })
+
+    this.getMedia()
   },
   methods: {
     getSchedule () {
       this.$store.dispatch('getCurrentSchedule')
-    },
-    // steps before Consultation
-    async checkBeforeConsultation() {
-      await this.checkLoginPatient()
-      await this.openConsultation()
-    },
-    checkLoginPatient() {
-      const appointmentID = this.$store.state.currentSchedule.Appointment.ID
-      this.$store.dispatch('consultation/checkLoginPatient', appointmentID)
-        .then((res) => {
-          this.isPatientLoggedIn = res.data.Data.IsPatientLoggedIn
-        })
-        .catch((err) => {
-          throw new Error(err)
-        })
-    },
-    openConsultation() {
-      this.connectSocket()
     },
     makeid (length) {
       let result = ''
@@ -93,14 +70,32 @@ export default {
         self.$store.dispatch('doctorAuthorization').then((res) => {
           self.sendNotification()
         }).catch(() => {
-          location.reload()
+          // location.reload()
         })
+      })
+
+      this.socket.on('error', (data) => {
+        console.log('socket practicing error', data)
+      })
+
+      this.socket.on('reconnect', (data) => {
+        console.log('socket practicing reconnect', data)
+      })
+
+      this.socket.on('connect_error', (data) => {
+        console.log('socket practicing connect error', data)
+      })
+
+      this.socket.on('disconnect', (data) => {
+        // this.$store.dispatch('consultation/onDisconnect')
+        console.log('socket practicing disconnect', data)
+        
       })
 
       this.socket.on('Call', (data, response) => {
         console.log('GET START CALL', data)
         response(1)
-        this.$store.dispatch('consultation/onCall', data)
+        // this.$store.dispatch('consultation/onCall', data)
       })
 
       this.socket.on('Data', (data, response) => {
@@ -136,24 +131,6 @@ export default {
         // }
       })
 
-      this.socket.on('error', (data) => {
-        console.log('socket practicing error', data)
-      })
-
-      this.socket.on('reconnect', (data) => {
-        console.log('socket practicing reconnect', data)
-      })
-
-      this.socket.on('connect_error', (data) => {
-        console.log('socket practicing connect error', data)
-      })
-
-      this.socket.on('disconnect', (data) => {
-        // this.$store.dispatch('consultation/onDisconnect')
-        console.log('socket practicing disconnect', data)
-        
-      })
-
       this.socket.on('EndCall', (data, response) => {
       })
 
@@ -164,31 +141,43 @@ export default {
         
       })
     },
-    preparingConsultation (options) {
-      console.log(options)
-    },
     sendNotification () {
       this.$store.dispatch('sendPushNotifiation').then((res) => {
         console.log(res, 'res notif')
       })
+    },
+    getMedia () {
+      getUserMedia({ video: true, audio: true }, (err, stream) => {
+        if (err) {
+          console.log(err)
+          return
+        }
+        const video2 = document.getElementById('remoteVideo')
+        const video = document.getElementById('localVideo')
+        if ('srcObject' in video) {
+          video.srcObject = stream
+        }
+        // if ('srcObject' in video2) {
+        //   video2.srcObject = stream
+        // }
+        video.play()
+        // video2.play()
+      })
+    },
+    pauseVideo () {
+      const video = document.getElementById('localVideo')
+      video.stop()
     }
+  },
+  destroyed () {
+    this.$nuxt.$off('connectSocket')
+    this.$nuxt.$off('disconnectSocket')
+    this.$nuxt.$off('cancelConsultation')
+    this.$nuxt.$off('stopCheckingSchedule')
+    this.$nuxt.$off('stopRecording')
+    this.$nuxt.$off('patientNoAnswer')
+    this.$nuxt.$off('patientRejectCall')
+    this.$nuxt.$off('eventSubmitted')
   }
 }
 </script>
-
-<style scoped>
-*{
-  font-family: sans-serif;
-}
-.container {
-  padding: 10px;
-}
-.video-section {
-  display: flex;
-  justify-content: left;
-  align-items: center;
-}
-button {
-  padding: 5px 12px;
-}
-</style>
