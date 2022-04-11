@@ -21,7 +21,7 @@
 const Peer = require('simple-peer')
 const getUserMedia = require('getusermedia')
 
-let PEER = null; let LOCAL_STREAM = null
+let PEER = null; let LOCAL_STREAM = null; let REMOTE_STREAM = null;
 
 export default {
   name: 'Index',
@@ -136,29 +136,29 @@ export default {
 
       this.socket.on('Message', (data, response) => {
         console.log('message => ', data)
-        // response(1)
+        response(1)
 
-        // this.$store.dispatch('consultation/onMessage', data)
+        this.$store.dispatch('consultation/onMessage', data)
 
-        // if (data.CallType) {
-        //   this.mode = data.CallType
-        // }
+        if (data.CallType) {
+          // this.mode = data.CallType
+        }
 
-        // if (data.id === 'Reconnect') {
-        //   this.isWaitingPatientBack = false
+        if (data.id === 'Reconnect') {
+          // this.isWaitingPatientBack = false
 
-        //   if (this.$store.state.consultation.consultation.consultationMode === 'Video') { this.remoteHasIceCandidate = false }
+          // if (this.$store.state.consultation.consultation.consultationMode === 'Video') { this.remoteHasIceCandidate = false }
 
-        //   // init consultation
-        //   this.preparingConsultation({
-        //     iceRestart: true
-        //   })
+          // init consultation
+          // this.preparingConsultation({
+          //   iceRestart: true
+          // })
 
-        //   this.$store.dispatch('consultation/log', {
-        //     data: 'Patient Reconnect',
-        //     status: 'INFO'
-        //   })
-        // }
+          // this.$store.dispatch('consultation/log', {
+          //   data: 'Patient Reconnect',
+          //   status: 'INFO'
+          // })
+        }
       })
 
       this.socket.on('error', (data) => {
@@ -180,6 +180,7 @@ export default {
       })
 
       this.socket.on('EndCall', (data, response) => {
+        console.log('Endcall', data, response)
       })
 
       this.socket.on('ScheduleEnded', (data, response) => {
@@ -241,8 +242,84 @@ export default {
         })
 
         LOCAL_STREAM = stream
-      })
 
+        const SignalTime = self.$moment().unix()
+        PEER.on('iceStateChange', (data) => {
+          console.log('icestatechange', JSON.stringify(data))
+          if (data === 'disconnected') {
+            console.log('peer disconnected')
+          }
+          if (data === 'connected') {
+            console.log('peer connected')
+          }
+        })
+        PEER.on('signal', (data) => {
+          console.log('peer signal', JSON.stringify(data))
+          if (data.sdp) {
+            self.$store.dispatch('consultation/emitCall', {
+              sdp: data.sdp
+            })
+            self.$store.dispatch('consultation/emitMessage', {
+              id: 'GenerateOffer',
+              data: data.sdp
+            })
+          }
+          if (data.candidate) {
+            if (self.$store.state.consultation.callStatus === 'IN_CALL') {
+              console.log('EMIT ICE CANDIDATE IN CALL', data.candidate)
+              self.$store.dispatch('consultation/emitMessage', { id: 'IceCandidate', data: data.candidate })
+              // self.$store.commit('RTC/ADD_NEW_CANDIDATE', data.candidate)
+            } else if (self.$store.state.consultation.callStatus === 'PROCESSING_CALL') {
+              console.log('EMIT ICE CANDIDATE IN PROCESSING CALL', data.candidate)
+              // self.$store.commit('RTC/ADD_NEW_CANDIDATE', data.candidate)
+            }
+          }
+        })
+        self.peerOnStream(!!(options && options.iceRestart))
+
+        self.$nuxt.$on('setPeerSignal', (type, data) => {
+          console.log('Set Peer Signal on: ' + SignalTime, type, data)
+
+          if (type === 'sdp') {
+            console.log('Peer Answer', JSON.stringify(data))
+            PEER.signal({
+              type: 'answer',
+              sdp: data
+            })
+          } else if (type === 'candidate') {
+            console.log('GOT ICE CANDIDATE', JSON.stringify(data))
+
+            // self.remoteHasIceCandidate = true
+            // self.$store.dispatch('consultation/log', {
+            //   data: 'Remote Peer has Candidate',
+            //   status: 'INFO'
+            // })
+            // self.$store.dispatch('consultation/log', {
+            //   data: 'Peer Candidate ' + JSON.stringify(data),
+            //   status: 'INFO'
+            // })
+            PEER.signal({
+              candidate: data
+            })
+          }
+        })
+      })
+    },
+    peerOnStream() {
+      if (PEER) {
+        PEER.on('stream', function (remoteStream) {
+          console.log('On Streaming : ', JSON.stringify(remoteStream))
+          REMOTE_STREAM = remoteStream
+
+          const remoteVideo = document.getElementById('remoteVideo')
+          if ('srcObject' in remoteVideo) {
+            remoteVideo.srcObject = remoteStream
+          } else {
+            remoteVideo.src = window.URL.createObjectURL(remoteStream) // for older browsers
+          }
+          remoteVideo.play()
+        })
+      }
     },
     sendNotification () {
       this.$store.dispatch('sendPushNotifiation').then((res) => {

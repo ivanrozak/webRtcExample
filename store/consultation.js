@@ -32,7 +32,8 @@ export const state = () => ({
     chat: [],
     attachment: null
   },
-	callStatus: null
+	callStatus: null,
+	localSDP: null,
 })
 export const mutations = {
 	SET_CURRENT_SCHEDULE: (state, value) => {
@@ -67,6 +68,9 @@ export const mutations = {
 	},
 	SET_CALL_STATUS: (state, value) => {
     state.callStatus = value
+  },
+	SET_LOCAL_SDP: (state, value) => {
+    state.localSDP = value
   },
 }
 export const actions = {
@@ -249,5 +253,108 @@ export const actions = {
 			key: 'consultationMode',
 			value: response.Type
 		})
-	}
+	},
+	emitCall ({ commit, dispatch, rootState }, data) {
+		const {sdp} = data
+		dispatch(
+			'$nuxtSocket/emit',
+      {
+        label: rootState.practiceSocket.PersistName,
+        evt: 'Call',
+        msg: { id: 'Call', sdpOffer: sdp }
+      }, { root: true }
+		).then((resEmit) => {
+      commit('SET_LOCAL_SDP', sdp)
+      console.log('Emit Call: ' + JSON.stringify(data))
+    }).catch((errorEmit) => {
+      console.log('Emit Call Failed')
+    })
+	},
+	emitMessage ({ commit, dispatch, rootState }, data) {
+    dispatch(
+      '$nuxtSocket/emit',
+      {
+        label: rootState.practiceSocket.PersistName,
+        evt: 'Message',
+        msg: data
+      }, { root: true }
+    ).then((resEmit) => {
+      console.log('Emit Message: ' + JSON.stringify(data))
+    }).catch((errorEmit) => {
+      console.log('Emit Message Failed')
+    })
+  },
+	onMessage ({ commit, dispatch, state }, response) {
+    console.log('On Message: ' + JSON.stringify(response.data))
+
+    if (response.id == 'ProcessedAnswer') { $nuxt.$emit('setPeerSignal', 'sdp', response.data) }
+
+    if (response.id == 'IceCandidate') { $nuxt.$emit('setPeerSignal', 'candidate', response.data) }
+
+    // if (response.CallType) {
+		// 	console.log('Consultation Call Type: ' + response.CallType)
+
+    //   commit('SET_CONSULTATION', {
+    //     key: 'consultationMode',
+    //     value: response.CallType
+    //   })
+
+    //   if (response.CallType == 'Video' || response.CallType == 'Chat') {
+    //     commit('SET_CONSULTATION', {
+    //       key: 'videoEnabled',
+    //       value: true
+    //     })
+    //   }
+    //   if (response.CallType == 'Audio') {
+    //     commit('SET_CONSULTATION', {
+    //       key: 'videoEnabled',
+    //       value: false
+    //     })
+    //   }
+    // }
+
+    // if (response.id == 'IsTyping') {
+    //   dispatch('log', {
+    //     data: 'Consultation Chat is Typing...',
+    //     status: 'INFO',
+    //   })
+    //   commit('SET_CONSULTATION', {
+    //     key: 'isTyping',
+    //     value: true
+    //   })
+
+    //   setTimeout(() => {
+    //     commit('SET_CONSULTATION', {
+    //       key: 'isTyping',
+    //       value: false
+    //     })
+    //     dispatch('log', {
+    //       data: 'Consultation Chat Stop Typing',
+    //       status: 'INFO',
+    //     })
+    //   }, 2000)
+    // }
+
+    // if (response.Status) {
+    //   if(state.consultation.status === 'PatientDisconnect' && response.Status === 'DeviceBackToForeground') {
+    //     commit('SET_CONSULTATION', {
+    //       'key': 'status',
+    //       'value': state.consultation.status,
+    //     })
+    //     dispatch('log', {
+    //       data: 'Consultation Status: ' + state.consultation.status,
+    //       status: 'INFO',
+    //     })
+    //   } else {
+    //     commit('SET_CONSULTATION', {
+    //       'key': 'status',
+    //       'value': response.Status,
+    //     })
+    //     dispatch('log', {
+    //       data: 'Consultation Status: ' + response.Status,
+    //       status: 'INFO',
+    //     })
+    //   }
+    // }
+  },
 }
