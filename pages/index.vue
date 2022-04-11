@@ -1,12 +1,21 @@
 <template>
   <div>
     <Test />
+    <div>
+      <video id="localVideo" muted="muted" width="300" height="200" />
+      <p>Doctor Video</p>
+      <video id="remoteVideo" muted="muted" width="300" height="200"></video>
+      <p>Patient Video</p>
+    </div>
     <button @click="connectSocket()">connect practice</button>
     <button @click="getSchedule()">get schedule</button>
+    <button @click="pauseVideo()">pause</button>
   </div>
 </template>
 
 <script>
+const getUserMedia = require('getusermedia')
+
 export default {
   name: 'IndexPage',
   data () {
@@ -29,6 +38,8 @@ export default {
       this.$store.dispatch('authorization')
       console.log('GLOBAL SOCKET CONNECTED')
     })
+    
+    this.getMedia()
   },
   methods: {
     getSchedule () {
@@ -135,6 +146,28 @@ export default {
       this.$store.dispatch('sendPushNotifiation').then((res) => {
         console.log(res, 'res notif')
       })
+    },
+    getMedia () {
+      getUserMedia({ video: true, audio: true }, (err, stream) => {
+        if (err) {
+          console.log(err)
+          return
+        }
+        const video2 = document.getElementById('remoteVideo')
+        const video = document.getElementById('localVideo')
+        if ('srcObject' in video) {
+          video.srcObject = stream
+        }
+        // if ('srcObject' in video2) {
+        //   video2.srcObject = stream
+        // }
+        video.play()
+        // video2.play()
+      })
+    },
+    pauseVideo () {
+      const video = document.getElementById('localVideo')
+      video.stop()
     }
   },
   destroyed () {
@@ -149,3 +182,9 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.bg-brown {
+  background-color: rgb(70, 69, 69) !important;
+}
+</style>

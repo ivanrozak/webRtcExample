@@ -1,6 +1,6 @@
 <template>
   <div>
-    <h1>Hello World !</h1>
+    <h1>YD Consultation</h1>
   </div>
 </template>
 
