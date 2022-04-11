@@ -31,7 +31,8 @@ export const state = () => ({
     status: 'Idle',
     chat: [],
     attachment: null
-  }
+  },
+	callStatus: null
 })
 export const mutations = {
 	SET_CURRENT_SCHEDULE: (state, value) => {
@@ -63,7 +64,10 @@ export const mutations = {
     } else { 
       state.consultation[key] = value
     }
-	}
+	},
+	SET_CALL_STATUS: (state, value) => {
+    state.callStatus = value
+  },
 }
 export const actions = {
 	doctorAuthorization ({ commit, dispatch, state }) {

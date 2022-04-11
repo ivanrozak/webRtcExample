@@ -3,11 +3,11 @@
     <h1>Web RTC Example</h1>
     <div class="video-section">
       <div>
-        <video id="localVideo" muted="muted" />
+        <video id="localVideo" muted="muted" width="200" />
         <h3>Doctor Video</h3>
       </div>
       <div v-if="inConsultation">
-        <video id="remoteVideo" />
+        <video id="remoteVideo" width="200" />
         <h3>Patient Video</h3>
       </div>
     </div>
@@ -18,6 +18,11 @@
 </template>
 
 <script>
+const Peer = require('simple-peer')
+const getUserMedia = require('getusermedia')
+
+let PEER = null; let LOCAL_STREAM = null
+
 export default {
   name: 'Index',
   data() {
@@ -29,6 +34,7 @@ export default {
     }
   },
   mounted () {
+    this.init()
     if (this.$store.state.user.Token === '') {
       this.$router.push('/login')
     }
@@ -46,6 +52,25 @@ export default {
     }
   },
   methods: {
+    init () {
+      // this.$store.commit('consultation/RESET')
+      const self = this
+      getUserMedia({ video: true, audio: true }, function (err, stream) {
+        if (err) {
+          console.error(err)
+          return
+        }
+        const video = document.getElementById('localVideo')
+        if ('srcObject' in video) {
+          video.srcObject = stream
+        } else {
+          video.src = window.URL.createObjectURL(stream) // for older browsers
+        }
+        video.play()
+        // self.$store.commit('consultation/SET_VIDEO_STREAM', stream)
+        // self.actionAfterReconnect()
+      })
+    },
     getSchedule () {
       this.$store.dispatch('getCurrentSchedule')
     },
@@ -165,7 +190,59 @@ export default {
       })
     },
     preparingConsultation (options) {
-      console.log(options)
+      const self = this
+      self.$store.commit('consultation/SET_CALL_STATUS', 'PROCESSING_CALL')
+      console.log('Preparing Consultation ...')
+      getUserMedia({ video: true, audio: true }, function (err, stream) {
+        if (err) {
+          console.log(error)
+          return
+        }
+
+        PEER = new Peer({
+          initiator: true,
+          trickle: true,
+          stream,
+          offerOptions: {
+            iceRestart: !!(options && options.iceRestart)
+          },
+          config: {
+            iceServers: [
+              {
+                urls: ['stun:stun.l.google.com:19302']
+              },
+              {
+                urls: ['stun:turn.quickblox.com'],
+                username: 'quickblox',
+                credential: 'baccb97ba2d92d71e26eb9886da5f1e0'
+              },
+              {
+                urls: ['turn:turn.quickblox.com:3478?transport=udp'],
+                username: 'quickblox',
+                credential: 'baccb97ba2d92d71e26eb9886da5f1e0'
+              },
+              {
+                urls: ['turn:turn.quickblox.com:3478?transport=tcp'],
+                username: 'quickblox',
+                credential: 'baccb97ba2d92d71e26eb9886da5f1e0'
+              },
+              {
+                urls: ['turn:turn.yesdok.com:3478'],
+                username: 'guestaja',
+                credential: 'somepasswordaja'
+              },
+              {
+                urls: ['stun:stun.yesdok.com:3478'],
+                username: 'guestaja',
+                credential: 'somepasswordaja'
+              }
+            ]
+          }
+        })
+
+        LOCAL_STREAM = stream
+      })
+
     },
     sendNotification () {
       this.$store.dispatch('sendPushNotifiation').then((res) => {
