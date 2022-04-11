@@ -34,6 +34,18 @@ export default {
     }
   },
   mounted () {
+    this.$store.commit('SET_SOCKET_PERSIST', this.makeid(10))
+    this.socketGlobal = this.$nuxtSocket({
+      name: 'global',
+      channel: '/',
+      persist: this.$store.state.socket.PersistName,
+      url: 'https://server13.yesdok.com:3002'
+    })
+
+    this.socketGlobal.on('connect', () => {
+      this.$store.dispatch('authorization')
+      console.log('GLOBAL SOCKET CONNECTED')
+    })
     this.init()
     if (this.$store.state.user.Token === '') {
       this.$router.push('/login')
@@ -306,8 +318,10 @@ export default {
       })
     },
     peerOnStream() {
+      const self = this
       if (PEER) {
         PEER.on('stream', function (remoteStream) {
+          self.inConsultation = true
           console.log('On Streaming : ', JSON.stringify(remoteStream))
           REMOTE_STREAM = remoteStream
 

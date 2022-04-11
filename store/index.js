@@ -3,7 +3,7 @@ const BASE_API = 'https://server13.yesdok.com/api/3.0/'
 export const state = () => ({
   user: {
     Role: '',
-    Token: '5Tj2Fe7jP9U1VxKB1VDo8qCM3ej1KLYK41aCmvZazY1fo4vD1gcIxDpHguhWJMkz',
+    Token: 'n0tmxZhlP7n5IO7qGaLJOfTeBsSN3gtrQ4y8cmw3BSZUmTazQdYlqPt1UzJfLWHG',
     TokenType: ''
   },
   socket: {
