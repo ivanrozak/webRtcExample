@@ -33,7 +33,6 @@ export const state = () => ({
     attachment: null
   },
 	callStatus: null,
-	localSDP: null,
 	iceCandidates: []
 })
 export const mutations = {
@@ -69,9 +68,6 @@ export const mutations = {
 	},
 	SET_CALL_STATUS: (state, value) => {
     state.callStatus = value
-  },
-	SET_LOCAL_SDP: (state, value) => {
-    state.localSDP = value
   },
 	ADD_NEW_CANDIDATE: (state, value) => {
 		state.iceCandidates.push(value)
@@ -172,20 +168,6 @@ export const actions = {
 				})
 		})
 	},
-	// getServerTime ({ rootState }) {
-	// 	return new Promise((resolve, reject) => {
-	// 		$nuxt.$api.get(process.env.BASE_API + 'doctor/time/server', {}, {
-	// 			headers: {
-	// 				DeviceType: 'web',
-	// 				Authorization: 'Bearer ' + state.user.Token
-	// 			}
-	// 		}).then((response) => {
-	// 			if (response.data && response.data.Data) { resolve(response.data.Data.Time) }
-	// 		}).catch((error) => {
-	// 			reject(error)
-	// 		})
-	// 	})
-	// },
 	log ({ commit, dispatch, state, rootState }, payload) {
 		const {data, status = 'INFO', consoleLog = true} = payload
 		return new Promise((resolve, reject) => {
@@ -267,12 +249,7 @@ export const actions = {
         evt: 'Call',
         msg: { id: 'Call', sdpOffer: sdp }
       }, { root: true }
-		).then((resEmit) => {
-      commit('SET_LOCAL_SDP', sdp)
-      console.log('Emit Call: ' + JSON.stringify(data))
-    }).catch((errorEmit) => {
-      console.log('Emit Call Failed')
-    })
+		)
 	},
 	emitMessage ({ commit, dispatch, rootState }, data) {
     dispatch(
